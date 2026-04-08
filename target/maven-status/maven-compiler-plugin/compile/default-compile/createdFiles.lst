@@ -1,5 +1,0 @@
-com\chess\model\Player.class
-com\chess\service\PlayerService.class
-com\chess\exception\InvalidDataException.class
-com\chess\App.class
-com\chess\service\FileService.class
