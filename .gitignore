@@ -1,0 +1,12 @@
+# Chặn file dữ liệu người chơi
+players.txt
+
+# Chặn các file rác của Java/Maven
+target/
+*.class
+.settings/
+.classpath
+.project
+
+# Chặn file cấu hình của VS Code
+.vscode/
