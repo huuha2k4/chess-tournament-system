@@ -9,7 +9,7 @@ public class FileService {
     public void saveToFile(String fileName, ArrayList<Player> list){
         try(PrintWriter pw = new PrintWriter(new File(fileName))){
             for(Player p:list){
-                pw.println(p.toString());
+                pw.println(p.getId()+","+p.getName()+","+p.getElo());
             }
             System.out.println("Luu file thanh cong vao: "+fileName);
         } catch(Exception e){
@@ -19,12 +19,14 @@ public class FileService {
 
     public ArrayList<Player> loadFromFile(String nameFile){
         ArrayList<Player> list = new ArrayList<>();
+        // mở luồng đọc
         try(BufferedReader bs = new BufferedReader(new FileReader(nameFile))){
+            // đọc từng dòng
             String line;
             while((line = bs.readLine()) != null){
                 if(line.trim().isEmpty()) continue;
-
-                StringTokenizer st = new StringTokenizer(line);
+                // chẻ nhỏ dòng đó ra để lấy dữ liệu
+                StringTokenizer st = new StringTokenizer(line,",");
                 int id = Integer.parseInt(st.nextToken());
                 String name = st.nextToken();
                 int elo = Integer.parseInt(st.nextToken());
