@@ -2,115 +2,123 @@ package com.chess;
 
 import java.util.*;
 
+import com.chess.exception.InvalidDataException;
 import com.chess.model.Player;
-import com.chess.service.FileService;
-import com.chess.service.PlayerService;
+import com.chess.service.*;
 import com.chess.view.ConsoleUI;
-
+import com.chess.model.Person;
+import com.chess.model.Referee;
 
 public class App {
     public static void main(String[] args) {
         Scanner sc = new Scanner(System.in);
         FileService fileService = new FileService();
-        PlayerService playerService = new PlayerService();
         ConsoleUI consoleUI = new ConsoleUI();
-        // Nạp dữ liệu một lần duy nhất khi khởi động
-        ArrayList<Player> listPlayer = fileService.loadFromFile("players.txt");
+        
+        // Nạp dữ liệu một lần duy nhất
+        ArrayList<Player> data = fileService.loadFromFile("players.txt");
+        PlayerService playerService = new PlayerService(data);
+
+        ArrayList<Person> tournamentStaff = new ArrayList<>();
+
+        tournamentStaff.add(new Player(1, "Nguyen Van A", 2800));
+        tournamentStaff.add(new Referee(101,"Ong trong tai A","Quoc te"));
+
+        System.out.println("-- DANH SACH NHAN SU GIAI DAU --");
+        for(Person p:tournamentStaff){
+            System.out.println(p.getName()+"|"+p.getRoleInfo());
+        }
 
         while (true) {
             consoleUI.printMenu();
-            
             int choice = consoleUI.getIntInput(sc, "Lua chon cua ban");
             
             switch (choice) {
-                case 1:
-                    System.out.println("1. Sap xep theo Elo (Giam dan)");
-                    System.out.println("2. Sap xep theo ID (Tang Dan)");
-                    System.out.println("3. Sap xep theo Ten (A-Z)");
-                    int sortChoice = consoleUI.getIntInput(sc, "chon kieu hien thi");
-
-                    if(sortChoice==1) listPlayer.sort((p1,p2) -> p2.getElo()-p1.getElo());
-                    else if(sortChoice==2) playerService.sortByID(listPlayer);
-                    else if(sortChoice==3) playerService.sortByName(listPlayer);
-
-                    consoleUI.displayPlayers(listPlayer);
-                    break;
-                case 2:
-                    int n = consoleUI.getIntInput(sc, "Nhap so ki thu can them");
-                    int i=0;
-                    while(i<n){
-                            int id = playerService.getNextId(listPlayer);
-                            sc.nextLine();
-                            String name  = consoleUI.getStringInput(sc, "Nhap ten");
-                            int elo = consoleUI.getIntInput(sc, "nhap elo");
-                            listPlayer.add(new Player(id, name, elo));
-                            i++;
-                    }
-                    fileService.saveToFile("players.txt", listPlayer);
-                    break;
-                case 3:
-                    if (!listPlayer.isEmpty()) {
-                        System.out.println("Elo Max: " + playerService.findMaxElo(listPlayer));
-                        System.out.println("Elo TB: " + playerService.calculateAverage(listPlayer));
-                    }
+                case 1: // Xem và Sắp xếp
+                    System.out.println("1. Elo (Giam) | 2. ID (Tang) | 3. Ten (A-Z)");
+                    int sortChoice = consoleUI.getIntInput(sc, "Chon kieu hien thi");
+                    if(sortChoice == 1) playerService.getAll().sort(Comparator.comparingInt(Player::getElo).reversed());
+                    else if(sortChoice == 2) playerService.sortByID();
+                    else if(sortChoice == 3) playerService.sortByName();
+                    consoleUI.displayPlayers(playerService.getAll());
                     break;
                 
-                case 4:
-                    System.out.print("Nhap ten ki thu can tim: ");
-                    sc.nextLine();
-                    String searchName = sc.nextLine();
-                    ArrayList<Player> found = playerService.searchByName(listPlayer, searchName);
-                    consoleUI.displayPlayers(found);
+                case 2: // Thêm kì thủ
+                    int n = consoleUI.getIntInput(sc, "Nhap so ki thu can them");
+                    for(int i=0; i<n; i++){
+                        try{
+                            int id = playerService.getNextId();
+                            sc.nextLine(); // Clear buffer
+                            String name = consoleUI.getStringInput(sc, "Nhap ten");
+                            int elo = consoleUI.getIntInput(sc, "Nhap Elo");
+                            playerService.add(new Player(id, name, elo));
+                        }catch(InvalidDataException e){
+                            System.out.println("loi: "+e.getMessage());
+                            i--;
+                            System.out.println("Vui long thu lai cho ki thu nay.");
+                        }
+                    }
+                    fileService.saveToFile("players.txt", playerService.getAll());
                     break;
 
-                case 5:
-                    int deleteId = consoleUI.getIntInput(sc, "Nhap id ki thu can xoa");
-                    if(consoleUI.getConfirm(sc, "Ban co chac chan muon xoa ki thu nay khong?")){
-                        if(playerService.deletePlayerById(listPlayer, deleteId)){
-                            System.out.println("Xoa thanh cong!");
-                            fileService.saveToFile("players.txt", listPlayer);
-                        }
-                        else{
-                            System.out.println("Xoa that bai!");
-                        }
-                    } else{
-                        System.out.println("Da huy lenh xoa.");
+                case 3: // Thống kê nhanh
+                    if (!playerService.getAll().isEmpty()) {
+                        System.out.println("Elo Max: " + playerService.findMaxElo());
+                        System.out.println("Elo TB: " + playerService.calculateAverage());
+                        System.out.println("Top 3 Ky thu: " + playerService.getTop3Players());
                     }
                     break;
-                case 6:
-                    System.out.print("Nhap khoang elo ma ban muon tim: ");
-                    int min = consoleUI.getIntInput(sc, "Nhap elo min");
-                    int max = consoleUI.getIntInput(sc, "Nhap elo max");
-                    ArrayList<Player> found1 = playerService.searchByEloRange(listPlayer, min, max);
-                    consoleUI.displayPlayers(found1);
-                    break;
-                case 7:
-                    int updateId = consoleUI.getIntInput(sc, "Nhap ID ki thu can cap nhat Elo: ");
-                    int newElo = consoleUI.getIntInput(sc, "Nhap so Elo moi: ");
 
-                    if(playerService.updatePlayerElo(listPlayer, updateId, newElo)){
-                        System.out.println("Cap nhat thanh cong!");
-                        fileService.saveToFile("players.txt", listPlayer);
-                    }else{
-                        System.out.println("Khong tim thay ID ki thu");
+                case 4: // Tìm theo tên
+                    String searchName = consoleUI.getStringInput(sc, "Nhap ten can tim");
+                    consoleUI.displayPlayers(playerService.searchByName(searchName));
+                    break;
+
+                case 5: // Xóa
+                    int deleteId = consoleUI.getIntInput(sc, "Nhap ID can xoa");
+                    if(consoleUI.getConfirm(sc, "Chac chan xoa?")){
+                        if(playerService.deleteById(deleteId)){
+                            System.out.println("Thanh cong!");
+                            fileService.saveToFile("players.txt", playerService.getAll());
+                        } else System.out.println("Khong tim thay ID!");
                     }
                     break;
-                case 8:
-                    playerService.showStatistics(listPlayer);
+
+                case 6: // Tìm theo khoảng Elo
+                    int min = consoleUI.getIntInput(sc, "Min Elo");
+                    int max = consoleUI.getIntInput(sc, "Max Elo");
+                    consoleUI.displayPlayers(playerService.searchByEloRange(min, max));
                     break;
-                case 9:
-                    System.out.println("Nhap cap bac muon loc (Dai su, Kien tuong, Chuyen nghiep, Nghiep du");
-                    sc.nextLine();
-                    String rankName = sc.nextLine();
-                    ArrayList<Player> filtered = playerService.filterByRank(listPlayer, rankName);
-                    consoleUI.displayPlayers(filtered);
+
+                case 7: // Cập nhật Elo
+                    try{
+                        int uId = consoleUI.getIntInput(sc, "ID can update");
+                        int newElo = consoleUI.getIntInput(sc, "Elo moi");
+                        if(playerService.updatePlayerElo(uId, newElo)){
+                            System.out.println("Cap nhat thanh cong!");
+                            fileService.saveToFile("players.txt", playerService.getAll());
+                        } else System.out.println("That bai!");
+                    } catch(InvalidDataException e){
+                        System.out.println(e.getMessage());
+                    }
                     break;
-                case 0:
-                    fileService.saveToFile("players.txt", listPlayer);
-                    System.out.println("Cam on ban da su dung! Tam biet.");
-                    return; // Thoát chương trình
+
+                case 8: // Thống kê chi tiết
+                    playerService.showStatistics();
+                    break;
+
+                case 9: // Lọc theo cấp bậc
+                    String rankName = consoleUI.getStringInput(sc, "Nhap cap bac (Dai su, Kien tuong...)");
+                    consoleUI.displayPlayers(playerService.filterByRank(rankName));
+                    break;
+
+                case 0: // Thoát
+                    fileService.saveToFile("players.txt", playerService.getAll());
+                    System.out.println("Cam on ban! Tam biet.");
+                    return;
+
                 default:
-                    System.out.println("Lua chon khong hop le!");
+                    System.out.println("Lựa chọn không hợp lệ!");
             }
         }
     }

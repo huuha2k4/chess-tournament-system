@@ -1,40 +1,34 @@
 package com.chess.model;
-
 import com.chess.exception.InvalidDataException;
 
-public class Player {
-    private int id;
-    private String name;
+public class Player extends Person {
     private int elo;
 
-    public Player(int id, String name,int elo){
-        this.id=id;
-        setName(name);
+    public Player(int id, String name, int elo) {
+        super(id, name); // Person sẽ lo id, name và validate name
         setElo(elo);
     }
 
-    public int getId(){ return id;}
-    public String getName(){return name;}
-    public int getElo(){ return elo;}
+    public int getElo() { return elo; }
 
-    public void setId(int id){
-        this.id=id;
-    }
-    public void setName(String name){
-        if(name.isEmpty()){
-            throw new InvalidDataException("Ten khong duoc de trong.");
+    public void setElo(int elo) {
+        if (elo < 0 || elo > 3000) {
+            throw new InvalidDataException("Elo phai tu 0 den 3000. Ban nhap: " + elo);
         }
-        this.name=name;
+        this.elo = elo;
     }
-    public void setElo(int elo){
-        if(elo<0 || elo>3000){
-            throw new InvalidDataException("Elo phai tu 0 den 3000. Ban nhap: "+elo);
-        }
-        this.elo=elo;
+
+    public Rank getRank(){
+        return Rank.fromElo(this.elo);
     }
 
     @Override
-    public String toString(){
-        return String.format("%d %s %d",id,name,elo);
+    public String getRoleInfo() {
+        return "Role: Ky thu - Elo: " + elo;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("%d - %s - Elo: %d", id, name, elo);
     }
 }
